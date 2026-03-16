@@ -1,0 +1,28 @@
+[package]
+name = "ai_cli_assistant"
+version = "0.1.0"
+edition = "2021"
+description = "Кроссплатформенный CLI клиент для работы с LLM"
+authors = ["Senior Rust Developer"]
+
+[lib]
+name = "ai_cli_assistant"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ai-cli-assistant"
+path = "src/main.rs"
+
+[dependencies]
+# Асинхронный клиент для OpenAI
+async-openai = "0.20"
+# Асинхронная среда выполнения (минимальный набор для #[tokio::main])
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+# Парсинг аргументов командной строки
+clap = { version = "4", features = ["derive"] }
+# Загрузка переменных окружения из файла .env
+dotenv = "0.15"
+# Обработка ошибок
+anyhow = "1.0"
+# Сериализация/десериализация для структур
+serde = { version = "1.0", features = ["derive"] }
