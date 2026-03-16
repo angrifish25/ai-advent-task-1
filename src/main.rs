@@ -1,12 +1,14 @@
 //! CLI обертка для библиотеки ai_cli_assistant.
 //! 
-//! Этот модуль отвечает только за взаимодействие с пользователем через
+//! Этот модуль отвечает только за взаимодей с пользователем через
 //! командную строку. Вся бизнес-логика делегируется библиотеке.
 
 use ai_cli_assistant::OpenAIClient;
 use anyhow::Result;
 use clap::Parser;
 use dotenv::dotenv;
+use indicatif::{ProgressBar, ProgressStyle};
+use std::time::Duration;
 
 /// Аргументы командной строки для AI CLI Assistant.
 #[derive(Parser, Debug)]
@@ -81,8 +83,22 @@ async fn main() -> Result<()> {
         eprintln!("[DEBUG] Отправка запроса к серверу...");
     }
 
+    // Создаём и запускаем спиннер
+    let spinner = ProgressBar::new_spinner();
+    spinner.set_style(
+        ProgressStyle::default_spinner()
+            .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+            .template("{spinner} {msg}")
+            .unwrap()
+    );
+    spinner.set_message("Генерация ответа...");
+    spinner.enable_steady_tick(Duration::from_millis(80));
+
     // Получение ответа
     let response = client.chat(request).await?;
+
+    // Останавливаем спиннер
+    spinner.finish_and_clear();
 
     // Вывод результата
     println!("\n{}", response.content);
