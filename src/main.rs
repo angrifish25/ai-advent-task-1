@@ -1,12 +1,12 @@
 //! CLI обертка для библиотеки ai_cli_assistant.
-//! 
-//! Этот модуль отвечает только за взаимодей с пользователем через
+//!
+//! Этот модуль отвечает только за взаимодействие с пользователем через
 //! командную строку. Вся бизнес-логика делегируется библиотеке.
 
 use ai_cli_assistant::OpenAIClient;
 use anyhow::Result;
 use clap::Parser;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Duration;
 
@@ -25,20 +25,20 @@ struct Args {
     #[arg(short, long)]
     prompt: String,
 
-    /// Название модели (по умолчанию gpt-3.5-turbo)
-    #[arg(short, long, default_value = "gpt-3.5-turbo")]
-    model: String,
+    /// Название модели (по умолчанию gpt-3.5-turbo или OPENAI_DEFAULT_MODEL)
+    #[arg(short, long)]
+    model: Option<String>,
 
     /// Системная инструкция для модели (опционально)
     #[arg(short, long)]
     system: Option<String>,
 
     /// Уровень детализации (для отладки)
-    #[arg(short, long, default_value = "false")]
+    #[arg(short, long)]
     verbose: bool,
 
     /// Показать информацию об использовании токенов
-    #[arg(long, default_value = "false")]
+    #[arg(long)]
     show_usage: bool,
 }
 
@@ -51,15 +51,20 @@ async fn main() -> Result<()> {
     // Парсинг аргументов командной строки
     let args = Args::parse();
 
+    // Определяем модель: CLI > OPENAI_DEFAULT_MODEL > fallback
+    let model = args.model
+        .or_else(|| std::env::var("OPENAI_DEFAULT_MODEL").ok())
+        .unwrap_or_else(|| "gpt-3.5-turbo".to_string());
+
     if args.verbose {
         eprintln!("[DEBUG] Запуск AI CLI Assistant v{}", env!("CARGO_PKG_VERSION"));
-        eprintln!("[DEBUG] Модель: {}", args.model);
+        eprintln!("[DEBUG] Модель: {}", model);
         eprintln!("[DEBUG] Запрос: {}", args.prompt);
         if let Some(ref sys) = args.system {
             eprintln!("[DEBUG] Системный промпт: {}", sys);
         }
         // Показываем конфигурацию подключения
-        if let Ok(_) = std::env::var("OPENAI_API_KEY") {
+        if std::env::var("OPENAI_API_KEY").is_ok() {
             eprintln!("[DEBUG] OPENAI_API_KEY: установлен");
         }
         if let Ok(base_url) = std::env::var("OPENAI_BASE_URL") {
@@ -75,7 +80,7 @@ async fn main() -> Result<()> {
     // Формирование запроса
     let request = ai_cli_assistant::LLMRequest {
         prompt: args.prompt,
-        model: args.model,
+        model,
         system_prompt: args.system,
     };
 

@@ -15,13 +15,13 @@ path = "src/main.rs"
 
 [dependencies]
 # Асинхронный клиент для OpenAI
-async-openai = "0.20"
+async-openai = "0.27"
 # Асинхронная среда выполнения (минимальный набор для #[tokio::main])
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 # Парсинг аргументов командной строки
 clap = { version = "4", features = ["derive"] }
 # Загрузка переменных окружения из файла .env
-dotenv = "0.15"
+dotenvy = "0.15"
 # Обработка ошибок
 anyhow = "1.0"
 # Сериализация/десериализация для структур

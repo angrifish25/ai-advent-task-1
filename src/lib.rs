@@ -62,21 +62,12 @@ pub struct TokenUsage {
 
 /// Конфигурация клиента для подключения к LLM API.
 /// Поддерживает OpenAI и совместимые сервисы (LM Studio, Ollama, vLLM).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct ClientConfig {
     /// API ключ
     pub api_key: String,
     /// Базовый URL API (по умолчанию https://api.openai.com/v1)
     pub base_url: Option<String>,
-}
-
-impl Default for ClientConfig {
-    fn default() -> Self {
-        Self {
-            api_key: String::new(),
-            base_url: None,
-        }
-    }
 }
 
 /// Клиент для работы с OpenAI API.
@@ -145,7 +136,7 @@ impl OpenAIClient {
         // Добавляем системное сообщение, если указано
         if let Some(ref system_prompt) = request.system_prompt {
             let system_message = ChatCompletionRequestSystemMessageArgs::default()
-                .content(system_prompt)
+                .content(system_prompt.as_str())
                 .build()
                 .context("Ошибка создания системного сообщения")?;
             messages.push(system_message.into());
@@ -190,7 +181,7 @@ impl OpenAIClient {
 
         Ok(LLMResponse {
             content,
-            model: request.model,
+            model: response.model,
             usage,
         })
     }
