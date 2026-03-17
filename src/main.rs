@@ -5,6 +5,7 @@
 
 use ai_cli_assistant::OpenAIClient;
 use anyhow::Result;
+use async_openai::types::{ResponseFormat, Stop};
 use clap::Parser;
 use dotenvy::dotenv;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -33,6 +34,18 @@ struct Args {
     #[arg(short, long)]
     system: Option<String>,
 
+    /// Максимальное количество токенов в ответе
+    #[arg(long)]
+    max_tokens: Option<u32>,
+
+    /// Формат ответа модели
+    #[arg(long, value_enum)]
+    response_format: Option<ResponseFormatArg>,
+
+    /// Последовательность завершения генерации (можно указать до 4 раз)
+    #[arg(long)]
+    stop: Vec<String>,
+
     /// Уровень детализации (для отладки)
     #[arg(short, long)]
     verbose: bool,
@@ -40,6 +53,15 @@ struct Args {
     /// Показать информацию об использовании токенов
     #[arg(long)]
     show_usage: bool,
+}
+
+/// Формат ответа для CLI-флага --response-format.
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum ResponseFormatArg {
+    /// Обычный текст (по умолчанию)
+    Text,
+    /// Гарантированный JSON-объект
+    Json,
 }
 
 /// Точка входа в CLI приложение.
@@ -77,11 +99,27 @@ async fn main() -> Result<()> {
     // Инициализация клиента из ENV переменных
     let client = OpenAIClient::from_env()?;
 
+    // Маппинг --response-format
+    let response_format = args.response_format.map(|f| match f {
+        ResponseFormatArg::Text => ResponseFormat::Text,
+        ResponseFormatArg::Json => ResponseFormat::JsonObject,
+    });
+
+    // Маппинг --stop (1 строка → String, несколько → StringArray)
+    let stop = match args.stop.len() {
+        0 => None,
+        1 => Some(Stop::String(args.stop.into_iter().next().unwrap())),
+        _ => Some(Stop::StringArray(args.stop)),
+    };
+
     // Формирование запроса
     let request = ai_cli_assistant::LLMRequest {
         prompt: args.prompt,
         model,
         system_prompt: args.system,
+        max_completion_tokens: args.max_tokens,
+        response_format,
+        stop,
     };
 
     if args.verbose {

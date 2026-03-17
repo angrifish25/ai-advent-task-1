@@ -13,6 +13,8 @@ use async_openai::{
         ChatCompletionRequestSystemMessageArgs,
         ChatCompletionRequestUserMessageArgs,
         CreateChatCompletionRequestArgs,
+        ResponseFormat,
+        Stop,
     },
     Client,
 };
@@ -28,6 +30,14 @@ pub struct LLMRequest {
     pub model: String,
     /// Системная инструкция (опционально)
     pub system_prompt: Option<String>,
+    /// Максимальное количество токенов в ответе (опционально)
+    pub max_completion_tokens: Option<u32>,
+    /// Формат ответа: Text или JsonObject (опционально)
+    #[serde(skip)]
+    pub response_format: Option<ResponseFormat>,
+    /// Последовательности завершения генерации (до 4, опционально)
+    #[serde(skip)]
+    pub stop: Option<Stop>,
 }
 
 impl Default for LLMRequest {
@@ -36,6 +46,9 @@ impl Default for LLMRequest {
             prompt: String::new(),
             model: "gpt-3.5-turbo".to_string(),
             system_prompt: None,
+            max_completion_tokens: None,
+            response_format: None,
+            stop: None,
         }
     }
 }
@@ -122,7 +135,7 @@ impl OpenAIClient {
     ///     let request = LLMRequest {
     ///         prompt: "Объясни квантовую запутанность".to_string(),
     ///         model: "gpt-3.5-turbo".to_string(),
-    ///         system_prompt: None,
+    ///         ..Default::default()
     ///     };
     ///     let response = client.chat(request).await?;
     ///     println!("{}", response.content);
@@ -150,9 +163,20 @@ impl OpenAIClient {
         messages.push(user_message.into());
 
         // Создаем запрос к API
-        let api_request = CreateChatCompletionRequestArgs::default()
-            .model(&request.model)
-            .messages(messages)
+        let mut builder = CreateChatCompletionRequestArgs::default();
+        builder.model(&request.model).messages(messages);
+
+        if let Some(n) = request.max_completion_tokens {
+            builder.max_completion_tokens(n);
+        }
+        if let Some(fmt) = request.response_format {
+            builder.response_format(fmt);
+        }
+        if let Some(stop) = request.stop {
+            builder.stop(stop);
+        }
+
+        let api_request = builder
             .build()
             .context("Ошибка формирования запроса к OpenAI API")?;
 
@@ -192,7 +216,7 @@ impl OpenAIClient {
         let request = LLMRequest {
             prompt: prompt.to_string(),
             model: model.to_string(),
-            system_prompt: None,
+            ..Default::default()
         };
         let response = self.chat(request).await?;
         Ok(response.content)
@@ -225,6 +249,7 @@ mod tests {
             prompt: "test".to_string(),
             model: "gpt-4".to_string(),
             system_prompt: Some("You are helpful".to_string()),
+            ..Default::default()
         };
         assert_eq!(request.prompt, "test");
         assert_eq!(request.model, "gpt-4");
