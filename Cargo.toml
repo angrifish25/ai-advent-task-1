@@ -1,6 +1,6 @@
 [package]
 name = "ai_cli_assistant"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Кроссплатформенный CLI клиент для работы с LLM"
 authors = ["Senior Rust Developer"]
@@ -26,5 +26,11 @@ dotenvy = "0.15"
 anyhow = "1.0"
 # Сериализация/десериализация для структур
 serde = { version = "1.0", features = ["derive"] }
+# JSON парсинг (уже скомпилирован как transitive dep async-openai)
+serde_json = "1.0"
 # Индикатор прогресса (спиннер)
 indicatif = "0.17"
+# Чтение клавиатуры (уже скомпилирован как transitive dep indicatif)
+console = "0.15"
+# Работа с async-стримами
+futures = { version = "0.3", default-features = false, features = ["std"] }
